@@ -70,45 +70,16 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Users Growth Chart -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-chart-line text-blue-500 mr-2"></i>
-                        Users Growth
-                    </h3>
-                </div>
-                <div class="h-64">
-                    <canvas id="usersChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Relations Distribution Chart -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-chart-pie text-green-500 mr-2"></i>
-                        Relations Distribution
-                    </h3>
-                </div>
-                <div class="h-64">
-                    <canvas id="relationsChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Document Types Chart -->
+        <!-- Document Types by First Letter Chart -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">
-                    <i class="fas fa-chart-bar text-purple-500 mr-2"></i>
-                    Document Types Distribution
+                    <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
+                    Document Types Distribution by First Letter
                 </h3>
             </div>
-            <div class="h-80">
-                <canvas id="documentsChart"></canvas>
+            <div class="h-96 flex justify-center">
+                <canvas id="documentsByLetterChart" style="max-width: 600px;"></canvas>
             </div>
         </div>
 
@@ -171,120 +142,88 @@
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
 
-        // Users Growth Chart
-        const usersCtx = document.getElementById('usersChart').getContext('2d');
-        const usersChart = new Chart(usersCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode(array_keys($usersByMonth)) !!},
-                datasets: [{
-                    label: 'New Users',
-                    data: {!! json_encode(array_values($usersByMonth)) !!},
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
+        // Document Types by First Letter Pie Chart
+        const documentsByLetterCtx = document.getElementById('documentsByLetterChart').getContext('2d');
+        
+        // Process document data to group by first letter
+        const documentTypes = {!! json_encode($documentStats->pluck('TYPE_NAME')) !!};
+        const documentCounts = {!! json_encode($documentStats->pluck('TYPE_ID')) !!};
+        
+        // Group documents by first letter
+        const letterGroups = {};
+        documentTypes.forEach((typeName, index) => {
+            const firstLetter = typeName.charAt(0).toUpperCase();
+            if (!letterGroups[firstLetter]) {
+                letterGroups[firstLetter] = 0;
             }
+            letterGroups[firstLetter] += parseInt(documentCounts[index]) || 1;
         });
 
-        // Relations Distribution Chart
-        const relationsCtx = document.getElementById('relationsChart').getContext('2d');
-        const relationLabels = {!! json_encode($relationStats->pluck('RELATION_DESC')->take(8)) !!};
-        const relationData = {!! json_encode($relationStats->pluck('RELATION_CODE')->take(8)) !!};
-        
-        const relationsChart = new Chart(relationsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: relationLabels,
-                datasets: [{
-                    data: relationData,
-                    backgroundColor: [
-                        '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B',
-                        '#EF4444', '#6B7280', '#EC4899', '#14B8A6'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true
-                        }
-                    }
-                }
-            }
-        });
+        // Sort letters alphabetically
+        const sortedLetters = Object.keys(letterGroups).sort();
+        const sortedCounts = sortedLetters.map(letter => letterGroups[letter]);
 
-        // Documents Chart
-        const documentsCtx = document.getElementById('documentsChart').getContext('2d');
-        const documentLabels = {!! json_encode($documentStats->pluck('TYPE_NAME')) !!};
-        const documentData = {!! json_encode($documentStats->pluck('TYPE_ID')) !!};
-        
-        const documentsChart = new Chart(documentsCtx, {
-            type: 'bar',
+        // Generate colors for each letter
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
+            '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+            '#FF6384', '#C9CBCF', '#4BC0C0', '#36A2EB', '#FFCE56',
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0',
+            '#36A2EB'
+        ];
+
+        const documentsByLetterChart = new Chart(documentsByLetterCtx, {
+            type: 'pie',
             data: {
-                labels: documentLabels,
+                labels: sortedLetters.map(letter => `Letter "${letter}"`),
                 datasets: [{
                     label: 'Document Types',
-                    data: documentData,
-                    backgroundColor: 'rgba(139, 92, 246, 0.8)',
-                    borderColor: 'rgb(139, 92, 246)',
-                    borderWidth: 1,
-                    borderRadius: 4
+                    data: sortedCounts,
+                    backgroundColor: colors.slice(0, sortedLetters.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 4
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
                         }
                     },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            maxRotation: 45
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} types (${percentage}%)`;
+                            }
                         }
+                    }
+                },
+                layout: {
+                    padding: {
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        bottom: 20
                     }
                 }
             }
         });
 
-                // Add some animation and interactivity
+        // Add some animation and interactivity
         document.addEventListener('DOMContentLoaded', function() {
             // Animate counter numbers
             const counters = document.querySelectorAll('.text-2xl.font-bold');
