@@ -11,15 +11,15 @@ class Relation extends Model
 
     protected $table = 't_relation';
     protected $primaryKey = 'RELATION_CODE';
-    public $timestamps = false;
+    public $timestamps = false; // Karena tabel menggunakan INSERT_TIME bukan created_at/updated_at
 
     protected $fillable = [
         'RELATION_CODE',
         'RELATION_DESC',
-        'INSERT_TIME',
+        'INSERT_TIME'
     ];
 
     protected $casts = [
-        'INSERT_TIME' => 'datetime',
+        'INSERT_TIME' => 'datetime'
     ];
 }

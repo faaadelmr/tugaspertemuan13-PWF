@@ -70,16 +70,32 @@
             </div>
         </div>
 
-        <!-- Document Types by First Letter Chart -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">
-                    <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
-                    Document Types Distribution by First Letter
-                </h3>
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Relations by First Letter Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-chart-pie text-green-500 mr-2"></i>
+                        Relations Distribution by First Letter
+                    </h3>
+                </div>
+                <div class="h-80">
+                    <canvas id="relationsByLetterChart"></canvas>
+                </div>
             </div>
-            <div class="h-96 flex justify-center">
-                <canvas id="documentsByLetterChart" style="max-width: 600px;"></canvas>
+
+            <!-- Document Types by First Letter Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
+                        Document Types Distribution by First Letter
+                    </h3>
+                </div>
+                <div class="h-80">
+                    <canvas id="documentsByLetterChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -135,6 +151,49 @@
                 </div>
             </div>
         </div>
+
+        <!-- Relations by First Letter Statistics Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-table text-indigo-500 mr-2"></i>
+                Relations Statistics by First Letter
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Letter</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relations</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @php
+                            $relationsByLetter = $relationStats->groupBy(function($item) {
+                                return strtoupper(substr($item->RELATION_DESC, 0, 1));
+                            })->sortKeys();
+                        @endphp
+                        @foreach($relationsByLetter as $letter => $relations)
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-800 rounded-full font-bold">
+                                    {{ $letter }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {{ $relations->count() }} types
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {{ $relations->pluck('RELATION_DESC')->implode(', ') }}
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -142,45 +201,41 @@
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
 
-        // Document Types by First Letter Pie Chart
-        const documentsByLetterCtx = document.getElementById('documentsByLetterChart').getContext('2d');
+        // Relations by First Letter Pie Chart
+        const relationsByLetterCtx = document.getElementById('relationsByLetterChart').getContext('2d');
         
-        // Process document data to group by first letter
-        const documentTypes = {!! json_encode($documentStats->pluck('TYPE_NAME')) !!};
-        const documentCounts = {!! json_encode($documentStats->pluck('TYPE_ID')) !!};
+        // Process relation data to group by first letter
+        const relationTypes = {!! json_encode($relationStats->pluck('RELATION_DESC')) !!};
         
-        // Group documents by first letter
-        const letterGroups = {};
-        documentTypes.forEach((typeName, index) => {
-            const firstLetter = typeName.charAt(0).toUpperCase();
-            if (!letterGroups[firstLetter]) {
-                letterGroups[firstLetter] = 0;
+        // Group relations by first letter
+        const relationLetterGroups = {};
+        relationTypes.forEach((relationDesc) => {
+            const firstLetter = relationDesc.charAt(0).toUpperCase();
+            if (!relationLetterGroups[firstLetter]) {
+                relationLetterGroups[firstLetter] = 0;
             }
-            letterGroups[firstLetter] += parseInt(documentCounts[index]) || 1;
+            relationLetterGroups[firstLetter] += 1;
         });
 
         // Sort letters alphabetically
-        const sortedLetters = Object.keys(letterGroups).sort();
-        const sortedCounts = sortedLetters.map(letter => letterGroups[letter]);
+        const sortedRelationLetters = Object.keys(relationLetterGroups).sort();
+        const sortedRelationCounts = sortedRelationLetters.map(letter => relationLetterGroups[letter]);
 
-        // Generate colors for each letter
-        const colors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
-            '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
-            '#FF6384', '#C9CBCF', '#4BC0C0', '#36A2EB', '#FFCE56',
-            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0',
-            '#36A2EB'
+        // Generate colors for relations chart
+        const relationColors = [
+            '#10B981', '#059669', '#047857', '#065F46', '#064E3B',
+            '#6EE7B7', '#34D399', '#10B981', '#059669', '#047857',
+            '#A7F3D0', '#6EE7B7', '#34D399', '#10B981', '#059669'
         ];
 
-        const documentsByLetterChart = new Chart(documentsByLetterCtx, {
+        const relationsByLetterChart = new Chart(relationsByLetterCtx, {
             type: 'pie',
             data: {
-                labels: sortedLetters.map(letter => `Letter "${letter}"`),
+                labels: sortedRelationLetters.map(letter => `Letter "${letter}"`),
                 datasets: [{
-                    label: 'Document Types',
-                    data: sortedCounts,
-                    backgroundColor: colors.slice(0, sortedLetters.length),
+                    label: 'Relation Types',
+                    data: sortedRelationCounts,
+                    backgroundColor: relationColors.slice(0, sortedRelationLetters.length),
                     borderColor: '#ffffff',
                     borderWidth: 2,
                     hoverOffset: 4
@@ -188,15 +243,15 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'right',
+                        position: 'bottom',
                         labels: {
-                            padding: 20,
+                            padding: 15,
                             usePointStyle: true,
                             font: {
-                                size: 12
+                                size: 11
                             }
                         }
                     },
@@ -211,13 +266,75 @@
                             }
                         }
                     }
-                },
-                layout: {
-                    padding: {
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        bottom: 20
+                }
+            }
+        });
+
+        // Document Types by First Letter Pie Chart
+        const documentsByLetterCtx = document.getElementById('documentsByLetterChart').getContext('2d');
+        
+        // Process document data to group by first letter
+        const documentTypes = {!! json_encode($documentStats->pluck('TYPE_NAME')) !!};
+        const documentCounts = {!! json_encode($documentStats->pluck('TYPE_ID')) !!};
+        
+        // Group documents by first letter
+        const documentLetterGroups = {};
+        documentTypes.forEach((typeName, index) => {
+            const firstLetter = typeName.charAt(0).toUpperCase();
+            if (!documentLetterGroups[firstLetter]) {
+                documentLetterGroups[firstLetter] = 0;
+            }
+            documentLetterGroups[firstLetter] += parseInt(documentCounts[index]) || 1;
+        });
+
+        // Sort letters alphabetically
+        const sortedDocumentLetters = Object.keys(documentLetterGroups).sort();
+        const sortedDocumentCounts = sortedDocumentLetters.map(letter => documentLetterGroups[letter]);
+
+        // Generate colors for documents chart
+        const documentColors = [
+            '#8B5CF6', '#7C3AED', '#6D28D9', '#5B21B6', '#4C1D95',
+            '#C4B5FD', '#A78BFA', '#8B5CF6', '#7C3AED', '#6D28D9',
+            '#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6', '#7C3AED'
+        ];
+
+        const documentsByLetterChart = new Chart(documentsByLetterCtx, {
+            type: 'pie',
+            data: {
+                labels: sortedDocumentLetters.map(letter => `Letter "${letter}"`),
+                datasets: [{
+                    label: 'Document Types',
+                    data: sortedDocumentCounts,
+                    backgroundColor: documentColors.slice(0, sortedDocumentLetters.length),
+                                        borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} types (${percentage}%)`;
+                            }
+                        }
                     }
                 }
             }
@@ -252,6 +369,25 @@
                     this.classList.remove('transform', 'scale-105', 'transition-transform', 'duration-200');
                 });
             });
+
+            // Add click event to chart segments for more interactivity
+            relationsByLetterChart.canvas.addEventListener('click', function(event) {
+                const activePoints = relationsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                if (activePoints.length > 0) {
+                    const clickedIndex = activePoints[0].index;
+                    const clickedLetter = sortedRelationLetters[clickedIndex];
+                    console.log(`Clicked on relations starting with letter: ${clickedLetter}`);
+                }
+            });
+
+            documentsByLetterChart.canvas.addEventListener('click', function(event) {
+                const activePoints = documentsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                if (activePoints.length > 0) {
+                    const clickedIndex = activePoints[0].index;
+                    const clickedLetter = sortedDocumentLetters[clickedIndex];
+                    console.log(`Clicked on documents starting with letter: ${clickedLetter}`);
+                }
+            });
         });
 
         // Refresh data every 30 seconds
@@ -264,6 +400,12 @@
                 })
                 .catch(error => console.error('Error refreshing data:', error));
         }, 30000);
+
+        // Add chart animation on load
+        setTimeout(() => {
+            relationsByLetterChart.update('active');
+            documentsByLetterChart.update('active');
+        }, 500);
     </script>
 
     <!-- Footer -->

@@ -15,12 +15,6 @@ class Document extends Model
 
     protected $fillable = [
         'TYPE_ID',
-        'TYPE_NAME',
-        'INSERT_TIME',
-        'UPDATED_BY',
-    ];
-
-    protected $casts = [
-        'INSERT_TIME' => 'datetime',
+        'TYPE_NAME'
     ];
 }
