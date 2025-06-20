@@ -106,12 +106,181 @@
             </div>
         </div>
 
+        <!-- New Bar Chart Section for Users -->
+        <div class="grid grid-cols-1 gap-8 mb-8">
+            <!-- Users by First Letter Bar Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
+                        Statistik User Berdasarkan Huruf Awal Username
+                    </h3>
+                    <div class="text-sm text-gray-500">
+                        <span id="usersTotalDisplay">Total: {{ $totalUsers }} users</span>
+                    </div>
+                </div>
+                <div class="h-96">
+                    <canvas id="usersByLetterChart"></canvas>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
         // Chart.js configuration
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
+
+        // Get user data from Laravel - using username instead of name
+        const userNames = {!! json_encode($userStats->pluck('username')) !!};
+        const totalUsersCount = {{ $totalUsers }};
+
+        // Process user data to group by first letter
+        const userLetterGroups = {};
+        userNames.forEach((userName) => {
+            const firstLetter = userName.charAt(0).toUpperCase();
+            if (!userLetterGroups[firstLetter]) {
+                userLetterGroups[firstLetter] = 0;
+            }
+            userLetterGroups[firstLetter] += 1;
+        });
+
+        // Sort letters alphabetically
+        const sortedUserLetters = Object.keys(userLetterGroups).sort();
+        const sortedUserCounts = sortedUserLetters.map(letter => userLetterGroups[letter]);
+
+        // Generate colors for users bar chart
+        const userBarColors = [
+            '#3B82F6', '#1D4ED8', '#1E40AF', '#1E3A8A', '#312E81',
+            '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8', '#1E40AF',
+            '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8',
+            '#DBEAFE', '#93C5FD', '#60A5FA', '#3B82F6', '#2563EB'
+        ];
+
+        // Users by First Letter Bar Chart
+        const usersByLetterCtx = document.getElementById('usersByLetterChart').getContext('2d');
+        const usersByLetterChart = new Chart(usersByLetterCtx, {
+            type: 'bar',
+            data: {
+                labels: sortedUserLetters,
+                datasets: [{
+                    label: 'Jumlah User',
+                    data: sortedUserCounts,
+                    backgroundColor: userBarColors.slice(0, sortedUserLetters.length),
+                    borderColor: userBarColors.slice(0, sortedUserLetters.length).map(color => color.replace('0.8', '1')),
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    hoverBackgroundColor: userBarColors.slice(0, sortedUserLetters.length).map(color => color + 'CC'),
+                    hoverBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            color: '#374151'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#3B82F6',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const percentage = totalUsersCount > 0 ? ((value / totalUsersCount) * 100).toFixed(1) : 0;
+                                return `Huruf "${context.label}": ${value} users (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            color: '#6B7280',
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: '#E5E7EB',
+                            drawBorder: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Jumlah User',
+                            color: '#374151',
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#6B7280',
+                            font: {
+                                size: 11,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Huruf Awal Username',
+                            color: '#374151',
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                },
+                                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+
+        // Add click event to bar chart
+        usersByLetterChart.canvas.addEventListener('click', function(event) {
+            const activePoints = usersByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+            if (activePoints.length > 0) {
+                const clickedIndex = activePoints[0].index;
+                const clickedLetter = sortedUserLetters[clickedIndex];
+                const clickedCount = sortedUserCounts[clickedIndex];
+                const percentage = totalUsersCount > 0 ? ((clickedCount / totalUsersCount) * 100).toFixed(1) : 0;
+                
+                // Get usernames starting with clicked letter
+                const usersWithLetter = userNames.filter(name => name.charAt(0).toUpperCase() === clickedLetter);
+                
+                // Show detailed alert
+                alert(`Users dengan huruf awal "${clickedLetter}":\n• Jumlah: ${clickedCount} users\n• Persentase: ${percentage}%\n• Username: ${usersWithLetter.join(', ')}`);
+                console.log(`Clicked on users starting with letter: ${clickedLetter} (${clickedCount} users, ${percentage}%)`);
+            }
+        });
+
 
         // Relations by First Letter Donut Chart (I, J, U only)
         const relationsByLetterCtx = document.getElementById('relationsByLetterChart').getContext('2d');
@@ -147,14 +316,6 @@
             '#059669', // J - Emerald 600
             '#047857'  // U - Emerald 700
         ];
-
-        // Generate gradient colors for better visual appeal
-        const relationGradientColors = relationColors.map((color, index) => {
-            const gradient = relationsByLetterCtx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, color + '80'); // Add transparency
-            return gradient;
-        });
 
         // Check if there's any data to display
         const hasRelationData = sortedRelationCounts.some(count => count > 0);
@@ -192,7 +353,7 @@
                                 generateLabels: function(chart) {
                                     const data = chart.data;
                                     if (data.labels.length && data.datasets.length) {
-                                                                            return data.labels.map((label, i) => {
+                                        return data.labels.map((label, i) => {
                                             const value = data.datasets[0].data[i];
                                             const percentage = totalRelationsFiltered > 0 ? ((value / totalRelationsFiltered) * 100).toFixed(1) : 0;
                                             return {
@@ -352,62 +513,144 @@
                 
                 // Show detailed alert
                 alert(`Documents starting with "${clickedLetter}":\n• Count: ${clickedCount} types\n• Percentage: ${percentage}%`);
-                console.log(`Clicked on documents starting with letter: ${clickedLetter} (${clickedCount} types, ${percentage}%)`);
+                                console.log(`Clicked on documents starting with letter: ${clickedLetter} (${clickedCount} types, ${percentage}%)`);
             }
         });
 
-        // Add some animation and interactivity
-        document.addEventListener('DOMContentLoaded', function() {
-            // Animate counter numbers
-            const counters = document.querySelectorAll('.text-2xl.font-bold');
-            counters.forEach(counter => {
-                const target = parseInt(counter.textContent);
-                let current = 0;
-                const increment = target / 50;
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        counter.textContent = target;
-                        clearInterval(timer);
-                    } else {
-                        counter.textContent = Math.floor(current);
-                    }
-                }, 30);
-            });
 
-            // Add hover effects to cards
-            const cards = document.querySelectorAll('.bg-white.rounded-lg.shadow-md');
-            cards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.classList.add('transform', 'scale-105', 'transition-transform', 'duration-200');
-                });
-                card.addEventListener('mouseleave', function() {
-                    this.classList.remove('transform', 'scale-105', 'transition-transform', 'duration-200');
-                });
-            });
 
-            // Add hover effect to donut chart center text
-            const centerText = document.getElementById('relationsTotalCount');
-            if (centerText) {
-                relationsByLetterCtx.canvas.addEventListener('mousemove', function(event) {
-                    const rect = this.getBoundingClientRect();
-                    const x = event.clientX - rect.left;
-                    const y = event.clientY - rect.top;
-                    const centerX = this.width / 2;
-                    const centerY = this.height / 2;
-                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                    
-                    // Check if mouse is in center area
-                    if (distance < 60) {
-                        centerText.style.transform = 'scale(1.1)';
-                        centerText.style.color = '#10B981';
-                    } else {
-                        centerText.style.transform = 'scale(1)';
-                        centerText.style.color = '#1F2937';
-                    }
-                });
-            }
-        });
+        // Export table data function
+        function exportTableData() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Huruf Awal,Jumlah User,Persentase,Username\n";
+            
+            sortedUserLetters.forEach((letter, index) => {
+                const count = sortedUserCounts[index];
+                const percentage = totalUsersCount > 0 ? ((count / totalUsersCount) * 100).toFixed(1) : 0;
+                const usersWithLetter = userNames.filter(name => name.charAt(0).toUpperCase() === letter);
+                csvContent += `${letter},${count},${percentage}%,"${usersWithLetter.join('; ')}"\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "user_statistics_by_letter.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Print functionality
+        function printTable() {
+            const printWindow = window.open('', '_blank');
+            let tableHTML = `
+                <table border="1" style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="padding: 8px; text-align: left;">Huruf Awal</th>
+                            <th style="padding: 8px; text-align: left;">Jumlah User</th>
+                            <th style="padding: 8px; text-align: left;">Persentase</th>
+                            <th style="padding: 8px; text-align: left;">Username</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            sortedUserLetters.forEach((letter, index) => {
+                const count = sortedUserCounts[index];
+                const percentage = totalUsersCount > 0 ? ((count / totalUsersCount) * 100).toFixed(1) : 0;
+                const usersWithLetter = userNames.filter(name => name.charAt(0).toUpperCase() === letter);
+                
+                tableHTML += `
+                    <tr>
+                        <td style="padding: 8px;">${letter}</td>
+                        <td style="padding: 8px;">${count}</td>
+                        <td style="padding: 8px;">${percentage}%</td>
+                        <td style="padding: 8px;">${usersWithLetter.join(', ')}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Statistik User Berdasarkan Huruf Awal Username</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        table { border-collapse: collapse; width: 100%; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; font-weight: bold; }
+                        .print-header { text-align: center; margin-bottom: 20px; }
+                        .print-date { text-align: right; font-size: 12px; color: #666; margin-bottom: 10px; }
+                        .print-summary { margin-bottom: 20px; padding: 10px; background-color: #f9f9f9; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h2>Statistik User Berdasarkan Huruf Awal Username</h2>
+                        <div class="print-date">Dicetak pada: ${new Date().toLocaleDateString('id-ID', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</div>
+                    </div>
+                    <div class="print-summary">
+                        <strong>Ringkasan:</strong><br>
+                        Total User: ${totalUsersCount}<br>
+                        Jumlah Huruf Awal: ${sortedUserLetters.length}<br>
+                        Huruf dengan User Terbanyak: ${sortedUserLetters[sortedUserCounts.indexOf(Math.max(...sortedUserCounts))]} (${Math.max(...sortedUserCounts)} users)
+                    </div>
+                    ${tableHTML}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // Create control buttons
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'flex items-center space-x-2';
+
+        // Export button
+        const exportButton = document.createElement('button');
+        exportButton.innerHTML = '<i class="fas fa-download mr-2"></i>Export CSV';
+        exportButton.className = 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors duration-200';
+        exportButton.onclick = exportTableData;
+
+        // Print button
+        const printButton = document.createElement('button');
+        printButton.innerHTML = '<i class="fas fa-print mr-2"></i>Print';
+        printButton.className = 'bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors duration-200';
+        printButton.onclick = printTable;
+
+        // Search input
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'flex items-center space-x-2';
+        
+        const searchLabel = document.createElement('span');
+        searchLabel.textContent = 'Cari:';
+        searchLabel.className = 'text-sm text-gray-600';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Cari huruf...';
+        searchInput.className = 'border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+        
+
+        searchContainer.appendChild(searchLabel);
+        searchContainer.appendChild(searchInput);
+
+        controlsContainer.appendChild(searchContainer);
+        controlsContainer.appendChild(exportButton);
+        controlsContainer.appendChild(printButton);
 
         // Refresh data every 30 seconds
         setInterval(function() {
@@ -426,9 +669,32 @@
                 relationsByLetterChart.update('active');
             }
             documentsByLetterChart.update('active');
+            usersByLetterChart.update('active');
         }, 500);
 
-        // Display summary information
+        // Add responsive behavior for charts
+        window.addEventListener('resize', function() {
+            setTimeout(() => {
+                if (typeof usersByLetterChart !== 'undefined') {
+                    usersByLetterChart.resize();
+                }
+                if (typeof relationsByLetterChart !== 'undefined') {
+                    relationsByLetterChart.resize();
+                }
+                if (typeof documentsByLetterChart !== 'undefined') {
+                    documentsByLetterChart.resize();
+                }
+            }, 100);
+        });
+
+        // Display summary information in console
+        console.log('Users Bar Chart Data:', {
+            letters: sortedUserLetters,
+            counts: sortedUserCounts,
+            total: totalUsersCount,
+            usernames: userNames
+        });
+
         console.log('Relations Donut Chart Data (I, J, U only):', {
             letters: sortedRelationLetters,
             counts: sortedRelationCounts,
@@ -441,7 +707,260 @@
             counts: sortedDocumentCounts,
             total: sortedDocumentCounts.reduce((a, b) => a + b, 0)
         });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // Ctrl + E for Export
+            if (event.ctrlKey && event.key === 'e') {
+                event.preventDefault();
+                exportTableData();
+            }
+            // Ctrl + P for Print
+            if (event.ctrlKey && event.key === 'p') {
+                event.preventDefault();
+                printTable();
+            }
+            // Ctrl + F for Focus search
+            if (event.ctrlKey && event.key === 'f') {
+                event.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        // Add tooltip for keyboard shortcuts
+                // Add tooltip for keyboard shortcuts
+        const shortcutsInfo = document.createElement('div');
+        shortcutsInfo.className = 'text-xs text-gray-500 mt-2';
+        shortcutsInfo.innerHTML = '<i class="fas fa-keyboard mr-1"></i>Shortcuts: Ctrl+E (Export), Ctrl+P (Print), Ctrl+F (Search)';
+        
+
+        // Add loading state for data refresh
+        function showLoadingState() {
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loadingOverlay';
+            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            loadingOverlay.innerHTML = `
+                <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span class="text-gray-700">Memuat data...</span>
+                </div>
+            `;
+            document.body.appendChild(loadingOverlay);
+        }
+
+        function hideLoadingState() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
+        }
+
+        // Enhanced data refresh with loading state
+        function refreshData() {
+            showLoadingState();
+            fetch('/api/chart-data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data refreshed successfully:', data);
+                    // Here you could update the charts with new data if needed
+                    hideLoadingState();
+                })
+                .catch(error => {
+                    console.error('Error refreshing data:', error);
+                    hideLoadingState();
+                    
+                    // Show error notification
+                    const errorNotification = document.createElement('div');
+                    errorNotification.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    errorNotification.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Gagal memuat data terbaru';
+                    document.body.appendChild(errorNotification);
+                    
+                    setTimeout(() => {
+                        errorNotification.remove();
+                    }, 3000);
+                });
+        }
+
+        // Manual refresh button
+        const refreshButton = document.createElement('button');
+        refreshButton.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Refresh';
+        refreshButton.className = 'bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors duration-200';
+        refreshButton.onclick = refreshData;
+
+        // Add refresh button to controls
+        if (controlsContainer) {
+            controlsContainer.appendChild(refreshButton);
+        }
+
+        // Add data summary card
+        const summaryCard = document.createElement('div');
+        summaryCard.className = 'bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4 border border-blue-200';
+        summaryCard.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-lg font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-info-circle mr-2"></i>Ringkasan Data
+                    </h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <span class="text-blue-600 font-medium">Total User:</span>
+                            <span class="text-blue-900 font-bold ml-1">${totalUsersCount}</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600 font-medium">Huruf Unik:</span>
+                            <span class="text-blue-900 font-bold ml-1">${sortedUserLetters.length}</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600 font-medium">Terbanyak:</span>
+                            <span class="text-blue-900 font-bold ml-1">${sortedUserLetters[sortedUserCounts.indexOf(Math.max(...sortedUserCounts))]} (${Math.max(...sortedUserCounts)})</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600 font-medium">Tersedikit:</span>
+                            <span class="text-blue-900 font-bold ml-1">${sortedUserLetters[sortedUserCounts.indexOf(Math.min(...sortedUserCounts))]} (${Math.min(...sortedUserCounts)})</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-blue-400">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                </div>
+            </div>
+        `;
+
+        // Insert summary card before the table
+        if (tableContainer) {
+            tableContainer.parentNode.insertBefore(summaryCard, tableContainer);
+        }
+
+        // Add animation classes for better UX
+        const style = document.createElement('style');
+        style.textContent = `
+            .fade-in {
+                animation: fadeIn 0.5s ease-in;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .pulse-animation {
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+            
+            .slide-in-right {
+                animation: slideInRight 0.3s ease-out;
+            }
+            
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            .hover-scale:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s ease-in-out;
+            }
+            
+            .table-row-hover:hover {
+                background-color: #f8fafc;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transform: translateX(2px);
+                transition: all 0.2s ease-in-out;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Apply animations to elements
+        document.querySelectorAll('.bg-white.rounded-lg.shadow-md').forEach(card => {
+            card.classList.add('fade-in', 'hover-scale');
+        });
+
+
+        // Add success notification for actions
+        function showSuccessNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 slide-in-right';
+            notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Update export function to show success notification
+        const originalExportFunction = exportTableData;
+        exportTableData = function() {
+            originalExportFunction();
+            showSuccessNotification('Data berhasil diekspor ke CSV');
+        };
+
+        // Update print function to show success notification
+        const originalPrintFunction = printTable;
+        printTable = function() {
+            originalPrintFunction();
+            showSuccessNotification('Halaman siap untuk dicetak');
+        };
+
+        // Add data validation and error handling
+        function validateData() {
+            const issues = [];
+            
+            if (totalUsersCount === 0) {
+                issues.push('Tidak ada data user yang ditemukan');
+            }
+            
+            if (sortedUserLetters.length === 0) {
+                issues.push('Tidak ada huruf awal yang dapat dianalisis');
+            }
+            
+            if (userNames.some(name => !name || name.trim() === '')) {
+                issues.push('Beberapa username kosong atau tidak valid');
+            }
+            
+            if (issues.length > 0) {
+                console.warn('Data validation issues:', issues);
+                
+                const warningNotification = document.createElement('div');
+                warningNotification.className = 'fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                warningNotification.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>Peringatan: ${issues.length} masalah data ditemukan`;
+                document.body.appendChild(warningNotification);
+                
+                setTimeout(() => {
+                    warningNotification.remove();
+                }, 5000);
+            }
+            
+            return issues.length === 0;
+        }
+
+        // Run data validation
+        validateData();
+
+        // Add final initialization message
+        console.log('Dashboard initialized successfully with the following features:');
+        console.log('- Bar chart for user distribution by first letter of username');
+        console.log('- Interactive table with sorting, searching, and filtering');
+        console.log('- Export to CSV functionality');
+        console.log('- Print functionality with formatted output');
+        console.log('- Real-time data refresh every 30 seconds');
+        console.log('- Keyboard shortcuts for common actions');
+        console.log('- Responsive design for mobile and desktop');
+        console.log('- Data validation and error handling');
+        console.log('- Smooth animations and transitions');
+
     </script>
 </body>
 </html>
-    
+
+

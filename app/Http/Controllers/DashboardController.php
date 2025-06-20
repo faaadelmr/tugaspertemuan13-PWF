@@ -11,44 +11,34 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Get total users
+        // Get total users count
         $totalUsers = User::count();
         
-        // Get recent users (using id instead of created_at since created_at column doesn't exist)
-        $recentUsers = User::orderBy('id', 'desc')->take(10)->get();
+        // Get user statistics (usernames for grouping by first letter)
+        $userStats = User::select('username')->get();
         
         // Get relation statistics
-        $relationStats = Relation::all();
+        $relationStats = Relation::select('RELATION_DESC')->get();
         
         // Get document statistics
-        $documentStats = Document::all();
+        $documentStats = Document::select('TYPE_NAME', 'TYPE_ID')->get();
         
         return view('dashboard', compact(
             'totalUsers',
-            'recentUsers', 
-            'relationStats',
+            'userStats', 
+            'relationStats', 
             'documentStats'
         ));
     }
     
+    // API endpoint for refreshing chart data
     public function getChartData()
     {
-        // API endpoint for refreshing chart data
-        $documentStats = Document::all();
-        
-        return response()->json([
-            'documentStats' => $documentStats,
-            'timestamp' => now()
-        ]);
-    }
-    
-    public function getDetailedStats()
-    {
-        // API endpoint for detailed statistics
         return response()->json([
             'totalUsers' => User::count(),
-            'totalRelations' => Relation::count(),
-            'totalDocuments' => Document::count(),
+            'userStats' => User::select('username')->get(),
+            'relationStats' => Relation::select('RELATION_DESC')->get(),
+            'documentStats' => Document::select('TYPE_NAME', 'TYPE_ID')->get(),
             'timestamp' => now()
         ]);
     }
