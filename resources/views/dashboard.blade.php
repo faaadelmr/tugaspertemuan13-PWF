@@ -72,16 +72,23 @@
 
         <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Relations by First Letter Chart -->
+            <!-- Relations by First Letter Donut Chart (I, J, U only) -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-chart-pie text-green-500 mr-2"></i>
-                        Relations Distribution by First Letter
+                        <i class="fas fa-chart-donut text-green-500 mr-2"></i>
+                        Statistik Jenis Relation Berdasarkan Huruf Awal
                     </h3>
                 </div>
-                <div class="h-80">
+                <div class="h-80 relative">
                     <canvas id="relationsByLetterChart"></canvas>
+                    <!-- Center text for donut chart -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-900" id="relationsTotalCount">0</div>
+                            <div class="text-sm text-gray-500">Total Relations</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -90,7 +97,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">
                         <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
-                        Document Types Distribution by First Letter
+                        Statistik Jenis Document berdasarkan Huruf Awal
                     </h3>
                 </div>
                 <div class="h-80">
@@ -99,101 +106,6 @@
             </div>
         </div>
 
-        <!-- Data Tables Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Recent Users Table -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    <i class="fas fa-user-clock text-blue-500 mr-2"></i>
-                    Recent Users
-                </h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($recentUsers as $user)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $user->username }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Relations List -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    <i class="fas fa-list text-green-500 mr-2"></i>
-                    Relation Types
-                </h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
-                    @foreach($relationStats->take(10) as $relation)
-                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span class="text-sm text-gray-700">{{ $relation->RELATION_DESC }}</span>
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            ID: {{ $relation->RELATION_CODE }}
-                        </span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-
-        <!-- Relations by First Letter Statistics Table -->
-        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                <i class="fas fa-table text-indigo-500 mr-2"></i>
-                Relations Statistics by First Letter
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Letter</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relations</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @php
-                            $relationsByLetter = $relationStats->groupBy(function($item) {
-                                return strtoupper(substr($item->RELATION_DESC, 0, 1));
-                            })->sortKeys();
-                        @endphp
-                        @foreach($relationsByLetter as $letter => $relations)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-800 rounded-full font-bold">
-                                    {{ $letter }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                    {{ $relations->count() }} types
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">
-                                {{ $relations->pluck('RELATION_DESC')->implode(', ') }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </main>
 
     <script>
@@ -201,74 +113,157 @@
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
 
-        // Relations by First Letter Pie Chart
+        // Relations by First Letter Donut Chart (I, J, U only)
         const relationsByLetterCtx = document.getElementById('relationsByLetterChart').getContext('2d');
         
-        // Process relation data to group by first letter
+        // Process relation data to group by first letter (filter I, J, U only)
         const relationTypes = {!! json_encode($relationStats->pluck('RELATION_DESC')) !!};
         
-        // Group relations by first letter
+        // Group relations by first letter and filter only I, J, U
         const relationLetterGroups = {};
+        const allowedLetters = ['I', 'J', 'U'];
+        
         relationTypes.forEach((relationDesc) => {
             const firstLetter = relationDesc.charAt(0).toUpperCase();
-            if (!relationLetterGroups[firstLetter]) {
-                relationLetterGroups[firstLetter] = 0;
+            if (allowedLetters.includes(firstLetter)) {
+                if (!relationLetterGroups[firstLetter]) {
+                    relationLetterGroups[firstLetter] = 0;
+                }
+                relationLetterGroups[firstLetter] += 1;
             }
-            relationLetterGroups[firstLetter] += 1;
         });
 
-        // Sort letters alphabetically
-        const sortedRelationLetters = Object.keys(relationLetterGroups).sort();
-        const sortedRelationCounts = sortedRelationLetters.map(letter => relationLetterGroups[letter]);
+        // Sort letters alphabetically and ensure all I, J, U are present (even if 0)
+        const sortedRelationLetters = ['I', 'J', 'U'];
+        const sortedRelationCounts = sortedRelationLetters.map(letter => relationLetterGroups[letter] || 0);
 
-        // Generate colors for relations chart
+        // Calculate total for center display
+        const totalRelationsFiltered = sortedRelationCounts.reduce((a, b) => a + b, 0);
+        document.getElementById('relationsTotalCount').textContent = totalRelationsFiltered;
+
+        // Generate colors for relations donut chart
         const relationColors = [
-            '#10B981', '#059669', '#047857', '#065F46', '#064E3B',
-            '#6EE7B7', '#34D399', '#10B981', '#059669', '#047857',
-            '#A7F3D0', '#6EE7B7', '#34D399', '#10B981', '#059669'
+            '#10B981', // I - Emerald
+            '#059669', // J - Emerald 600
+            '#047857'  // U - Emerald 700
         ];
 
-        const relationsByLetterChart = new Chart(relationsByLetterCtx, {
-            type: 'pie',
-            data: {
-                labels: sortedRelationLetters.map(letter => `Letter "${letter}"`),
-                datasets: [{
-                    label: 'Relation Types',
-                    data: sortedRelationCounts,
-                    backgroundColor: relationColors.slice(0, sortedRelationLetters.length),
-                    borderColor: '#ffffff',
-                    borderWidth: 2,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            usePointStyle: true,
-                            font: {
-                                size: 11
+        // Generate gradient colors for better visual appeal
+        const relationGradientColors = relationColors.map((color, index) => {
+            const gradient = relationsByLetterCtx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color + '80'); // Add transparency
+            return gradient;
+        });
+
+        // Check if there's any data to display
+        const hasRelationData = sortedRelationCounts.some(count => count > 0);
+
+        if (hasRelationData) {
+            const relationsByLetterChart = new Chart(relationsByLetterCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedRelationLetters.map(letter => `Letter "${letter}"`),
+                    datasets: [{
+                        label: 'Relation Types',
+                        data: sortedRelationCounts,
+                        backgroundColor: relationColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverOffset: 8,
+                        cutout: '60%', // This makes it a donut chart
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                                                            return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = totalRelationsFiltered > 0 ? ((value / totalRelationsFiltered) * 100).toFixed(1) : 0;
+                                            return {
+                                                text: `${label}: ${value} (${percentage}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].borderColor,
+                                                lineWidth: data.datasets[0].borderWidth,
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#10B981',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${value} types (${percentage}%)`;
+                                }
                             }
                         }
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value} types (${percentage}%)`;
-                            }
-                        }
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
-            }
-        });
+            });
+
+            // Add click event to donut chart segments
+            relationsByLetterChart.canvas.addEventListener('click', function(event) {
+                const activePoints = relationsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                if (activePoints.length > 0) {
+                    const clickedIndex = activePoints[0].index;
+                    const clickedLetter = sortedRelationLetters[clickedIndex];
+                    const clickedCount = sortedRelationCounts[clickedIndex];
+                    const percentage = totalRelationsFiltered > 0 ? ((clickedCount / totalRelationsFiltered) * 100).toFixed(1) : 0;
+                    
+                    // Show detailed alert
+                    alert(`Relations starting with "${clickedLetter}":\n• Count: ${clickedCount} types\n• Percentage: ${percentage}%`);
+                    console.log(`Clicked on relations starting with letter: ${clickedLetter} (${clickedCount} types, ${percentage}%)`);
+                }
+            });
+
+        } else {
+            // Display "No Data" message in center of donut
+            relationsByLetterCtx.font = "16px Arial";
+            relationsByLetterCtx.fillStyle = "#6B7280";
+            relationsByLetterCtx.textAlign = "center";
+            relationsByLetterCtx.fillText("No Data Available", relationsByLetterCtx.canvas.width/2, relationsByLetterCtx.canvas.height/2);
+            
+            // Update center text
+            document.getElementById('relationsTotalCount').textContent = '0';
+        }
 
         // Document Types by First Letter Pie Chart
         const documentsByLetterCtx = document.getElementById('documentsByLetterChart').getContext('2d');
@@ -306,7 +301,7 @@
                     label: 'Document Types',
                     data: sortedDocumentCounts,
                     backgroundColor: documentColors.slice(0, sortedDocumentLetters.length),
-                                        borderColor: '#ffffff',
+                    borderColor: '#ffffff',
                     borderWidth: 2,
                     hoverOffset: 4
                 }]
@@ -336,7 +331,28 @@
                             }
                         }
                     }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1500
                 }
+            }
+        });
+
+        // Add click event to documents chart
+        documentsByLetterChart.canvas.addEventListener('click', function(event) {
+            const activePoints = documentsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+            if (activePoints.length > 0) {
+                const clickedIndex = activePoints[0].index;
+                const clickedLetter = sortedDocumentLetters[clickedIndex];
+                const clickedCount = sortedDocumentCounts[clickedIndex];
+                const totalDocs = sortedDocumentCounts.reduce((a, b) => a + b, 0);
+                const percentage = ((clickedCount / totalDocs) * 100).toFixed(1);
+                
+                // Show detailed alert
+                alert(`Documents starting with "${clickedLetter}":\n• Count: ${clickedCount} types\n• Percentage: ${percentage}%`);
+                console.log(`Clicked on documents starting with letter: ${clickedLetter} (${clickedCount} types, ${percentage}%)`);
             }
         });
 
@@ -370,24 +386,27 @@
                 });
             });
 
-            // Add click event to chart segments for more interactivity
-            relationsByLetterChart.canvas.addEventListener('click', function(event) {
-                const activePoints = relationsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
-                if (activePoints.length > 0) {
-                    const clickedIndex = activePoints[0].index;
-                    const clickedLetter = sortedRelationLetters[clickedIndex];
-                    console.log(`Clicked on relations starting with letter: ${clickedLetter}`);
-                }
-            });
-
-            documentsByLetterChart.canvas.addEventListener('click', function(event) {
-                const activePoints = documentsByLetterChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
-                if (activePoints.length > 0) {
-                    const clickedIndex = activePoints[0].index;
-                    const clickedLetter = sortedDocumentLetters[clickedIndex];
-                    console.log(`Clicked on documents starting with letter: ${clickedLetter}`);
-                }
-            });
+            // Add hover effect to donut chart center text
+            const centerText = document.getElementById('relationsTotalCount');
+            if (centerText) {
+                relationsByLetterCtx.canvas.addEventListener('mousemove', function(event) {
+                    const rect = this.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    const centerX = this.width / 2;
+                    const centerY = this.height / 2;
+                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                    
+                    // Check if mouse is in center area
+                    if (distance < 60) {
+                        centerText.style.transform = 'scale(1.1)';
+                        centerText.style.color = '#10B981';
+                    } else {
+                        centerText.style.transform = 'scale(1)';
+                        centerText.style.color = '#1F2937';
+                    }
+                });
+            }
         });
 
         // Refresh data every 30 seconds
@@ -401,30 +420,28 @@
                 .catch(error => console.error('Error refreshing data:', error));
         }, 30000);
 
-        // Add chart animation on load
+        // Add chart animation on load with delay
         setTimeout(() => {
-            relationsByLetterChart.update('active');
+            if (hasRelationData && typeof relationsByLetterChart !== 'undefined') {
+                relationsByLetterChart.update('active');
+            }
             documentsByLetterChart.update('active');
         }, 500);
-    </script>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex justify-between items-center">
-                <p class="text-sm text-gray-500">
-                    © {{ date('Y') }} Dashboard Statistics. Built with Laravel & Tailwind CSS.
-                </p>
-                <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-gray-500">
-                        <i class="fab fa-github"></i>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-gray-500">
-                        <i class="fab fa-twitter"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </footer>
+        // Display summary information
+        console.log('Relations Donut Chart Data (I, J, U only):', {
+            letters: sortedRelationLetters,
+            counts: sortedRelationCounts,
+            total: totalRelationsFiltered,
+            hasData: hasRelationData
+        });
+
+        console.log('Documents Pie Chart Data (All letters):', {
+            letters: sortedDocumentLetters,
+            counts: sortedDocumentCounts,
+            total: sortedDocumentCounts.reduce((a, b) => a + b, 0)
+        });
+    </script>
 </body>
 </html>
+    
